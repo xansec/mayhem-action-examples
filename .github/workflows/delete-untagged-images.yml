@@ -1,0 +1,20 @@
+name: 'Delete untagged images'
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # run at 2 AM UTC
+
+jobs:
+  purge-image:
+    name: Delete untagged images from ghcr.io
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete image
+        # using specific sha because untagged feature is unreleased
+        uses: bots-house/ghcr-delete-image-action@v1.1.0
+        with:
+          owner: ForAllSecure
+          name: mcode-action-examples
+          token: ${{ secrets.GITHUB_TOKEN }}
+          untagged-keep-latest: 1

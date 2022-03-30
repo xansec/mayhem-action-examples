@@ -1,0 +1,59 @@
+stages:
+  - setup
+  - build
+  - test
+
+setup-job:
+  stage: setup
+  script:
+    # Workaround to support both aarch64 (preinstalled in the Docker image) and x86_64 (download to install)
+    - mkdir -p ~/bin
+    - export PATH=${PATH}:~/bin
+    - curl --no-progress-meter -Lo ~/bin/mayhem-x86_64 ${MAYHEM_URL}/cli/Linux/mayhem  && chmod +x ~/bin/mayhem-x86_64
+
+    # Login to mayhem and docker
+    - MAYHEM_PROMPT=1 mayhem-$(arch) login --url ${MAYHEM_URL} --token ${MAYHEM_TOKEN}
+
+build-job:
+  stage: build
+  script:
+    - echo "Compiling the code..."
+    - REGISTRY=$(mayhem-$(arch) docker-registry)
+    - docker build --platform=linux/amd64 -t ${REGISTRY}/lighttpd:${CI_COMMIT_REF_NAME} .
+    - docker push ${REGISTRY}/lighttpd:${CI_COMMIT_REF_NAME}
+    - echo "Compile complete."
+
+mcode-test-job:
+  stage: test
+  script: 
+    - export PATH=${PATH}:~/bin   
+    - REGISTRY=$(mayhem-$(arch) docker-registry)
+    
+    # Run Mayhem
+    # Other possible flags not used here: --merge-base-branch-name ${CI_MERGE_REQUEST_TARGET_BRANCH_NAME} --ci-url ${CI_PIPELINE_URL}
+    - run=$(mayhem-$(arch) --verbosity info run . --project forallsecure/mcode-action-examples --owner forallsecure --image ${REGISTRY}/lighttpd:${CI_COMMIT_REF_NAME} --file ${MAYHEMFILE} --duration 60 --branch-name ${CI_COMMIT_REF_NAME} --revision ${CI_COMMIT_SHA} 2>/dev/null);
+    
+    # Fail if no output was given
+    - if [ -z "${run}" ]; then exit 1; fi
+
+    # Determine run name
+    - runName=$(echo ${run} | awk -F / '{ print $(NF-1) }');
+
+    # Wait for job to complete and artifacts to be ready
+    - mayhem-$(arch) --verbosity info wait $run --owner forallsecure --sarif sarif-${runName}.sarif --junit junit-${runName}.xml;
+    - status=$(mayhem-$(arch) --verbosity info show --owner forallsecure --format json $run | jq '.[0].status')
+    - if [[ ${status} == *"stopped"* || ${status} == *"failed"* ]]; then exit 2; fi
+    
+    # Fail if defects were found
+    - defects=$(mayhem-$(arch) --verbosity info show --owner forallsecure --format json ${run} | jq '.[0].defects|tonumber')
+    - if [[ ${defects} -gt 0 ]]; then echo "${defects} defects found!"; exit 3; fi
+  parallel:
+    matrix:
+      - MAYHEMFILE: ['mayhem/Mayhemfile.lighttpd', 'mayhem/Mayhemfile.mayhemit']
+  artifacts:
+    when: always
+    paths:
+      - 'sarif-*.sarif'
+      - 'junit-*.xml'
+    reports:
+      junit: 'junit-*.xml'
