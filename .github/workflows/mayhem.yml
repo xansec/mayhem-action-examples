@@ -92,7 +92,7 @@ jobs:
           sarif_file: sarif
       
       - name: Upload JUNIT file(s)
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: junit
           path: junit
