@@ -8,7 +8,7 @@ int mayhemit(char *buf)
       if(buf[1] == 'u')
         if(buf[2] == 'g') {
           printf("You've got it!");
-          // abort();
+          abort();
         }
     return 0;
 }
