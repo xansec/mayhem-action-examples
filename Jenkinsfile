@@ -5,8 +5,7 @@ pipeline {
         stage('Setup') {
             steps {
                 echo 'Setting up..'
-                withCredentials([string(credentialsId: 'MAYHEM_URL', variable: 'MAYHEM_URL'), 
-                                 usernamePassword(credentialsId: 'MAYHEM_CREDENTIALS', usernameVariable: 'MAYHEM_USERNAME', passwordVariable: 'MAYHEM_TOKEN')]) {
+                withCredentials([usernamePassword(credentialsId: 'MAYHEM_CREDENTIALS', usernameVariable: 'MAYHEM_USERNAME', passwordVariable: 'MAYHEM_TOKEN')]) {
                     sh """
                       # Setup aarch64 (preinstalled) and x86_64 (download to install)
                       mkdir -p ~/bin
