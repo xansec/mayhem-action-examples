@@ -10,10 +10,10 @@ pipeline {
                       # Setup aarch64 (preinstalled) and x86_64 (download to install)
                       mkdir -p ~/bin
                       export PATH=\${PATH}:~/bin
-                      curl -Lo ~/bin/mayhem-x86_64 ${env.MAYHEM_URL}/cli/Linux/mayhem  && chmod +x ~/bin/mayhem-x86_64
+                      curl -Lo ~/bin/mayhem-x86_64 ${MAYHEM_URL}/cli/Linux/mayhem  && chmod +x ~/bin/mayhem-x86_64
 
                       # Login to mayhem and docker
-                      mayhem-\$(arch) login --url ${env.MAYHEM_URL} --token ${MAYHEM_TOKEN}
+                      mayhem-\$(arch) login --url ${MAYHEM_URL} --token ${MAYHEM_TOKEN}
                       REGISTRY=\$(mayhem-\$(arch) docker-registry)
                       echo "${MAYHEM_TOKEN}" | docker login -u ${MAYHEM_USERNAME} --password-stdin \${REGISTRY} 
                     """
