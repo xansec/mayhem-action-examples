@@ -53,8 +53,8 @@ pipeline {
                                   # Run Mayhem
                                   # removed --merge-base-branch-name 
                                   # remove --ci-url 
-                                  echo "mayhem-\$(arch) --verbosity info run . --project forallsecure/mcode-action-examples --owner forallsecure --image \${REGISTRY}/lighttpd:${env.BRANCH_NAME} --file ${MAYHEMFILE} --duration 60 --branch-name ${env.BRANCH_NAME} --revision ${env.GIT_COMMIT} 2>/dev/null"
-                                  run=\$(mayhem-\$(arch) --verbosity info run . --project forallsecure/mcode-action-examples --owner forallsecure --image \${REGISTRY}/lighttpd:${env.BRANCH_NAME} --file ${MAYHEMFILE} --duration 60 --branch-name ${env.BRANCH_NAME} --revision ${env.GIT_COMMIT} 2>/dev/null);
+                                  echo "mayhem-\$(arch) --verbosity info run . --project forallsecure/mcode-action-examples --owner forallsecure --image \${REGISTRY}/lighttpd:${env.BRANCH_NAME} --file ${MAYHEMFILE} --regression --coverage --branch-name ${env.BRANCH_NAME} --revision ${env.GIT_COMMIT} 2>/dev/null"
+                                  run=\$(mayhem-\$(arch) --verbosity info run . --project forallsecure/mcode-action-examples --owner forallsecure --image \${REGISTRY}/lighttpd:${env.BRANCH_NAME} --file ${MAYHEMFILE} --regression --coverage --branch-name ${env.BRANCH_NAME} --revision ${env.GIT_COMMIT} 2>/dev/null);
                                   # Fail if no output was given
                                   if [ -z "\${run}" ]; then exit 1; fi
 

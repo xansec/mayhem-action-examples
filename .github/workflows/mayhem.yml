@@ -85,7 +85,7 @@ jobs:
         with:
           mayhem-url: ${{ secrets.MAYHEM_URL }}
           mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
-          args: --image ${{ needs.build.outputs.image }} --file ${{ matrix.mayhemfile }} --duration 60
+          args: --image ${{ needs.build.outputs.image }} --file ${{ matrix.mayhemfile }} --regression --coverage
           sarif-output: sarif
           junit-output: junit
           coverage-output: coverage

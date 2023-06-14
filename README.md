@@ -34,6 +34,8 @@ The `vulnerable` branch contains the following vulnerable targets:
     * [c-base-executable Dockerfile](https://github.com/ForAllSecure/mcode-action-examples/blob/vulnerable/mayhem/Dockerfile): Build instructions for setting up a containerized (and vulnerable) `c-base-executable` application.
     * [c-base-executable Mayhemfile](https://github.com/ForAllSecure/mcode-action-examples/blob/vulnerable/mayhem/Mayhemfile.mayhemit): Configuration options for the resulting (vulnerable) `c-base-executable` CI pipeline Mayhem run.
 
+The `regression` branch is the same as the main branch, but only runs regression testing and code coverage, instead of running with a fixed duration.
+
 ## Getting Started
 
 1. Fork this repository and create a Mayhem account to copy and paste your account token to GitHub Secrets for your repository:
