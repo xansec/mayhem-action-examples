@@ -10,8 +10,11 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  BIN_IMAGE_NAME: ${{ github.repository }}-bin
+  API_IMAGE_NAME: ${{ github.repository }}-api
   BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+  API_CONTAINER_NAME: 'demo-api'
+  TARGET: forallsecure/xansec-mayhem-action-examples
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -46,23 +49,36 @@ jobs:
         id: meta
         uses: docker/metadata-action@v4.1.1
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: |
+            ${{ env.REGISTRY }}/${{ env.BIN_IMAGE_NAME }}
+            ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
 
       - name: Set lowercase image name
         run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY,,}" >> ${GITHUB_ENV}
+          echo "BIN_IMAGE_NAME=${GITHUB_REPOSITORY,,}-bin" >> ${GITHUB_ENV}
+          echo "API_IMAGE_NAME=${GITHUB_REPOSITORY,,}-api" >> ${GITHUB_ENV}
 
-      - name: Build and push Docker image
+      - name: Build and push binary Docker image
         uses: docker/build-push-action@v3.2.0
         with:
           context: .
           push: true
-          file: mayhem/Dockerfile
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+          file: mayhem/bin.dockerfile
+          tags: ${{ env.REGISTRY }}/${{ env.BIN_IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Build and push api Docker image
+        uses: docker/build-push-action@v3.2.0
+        with:
+          context: .
+          push: true
+          file: mayhem/api.dockerfile
+          tags: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}:${{ env.BRANCH_NAME }}
           labels: ${{ steps.meta.outputs.labels }}
 
     outputs:
-      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+      bin_image: ${{ env.REGISTRY }}/${{ env.BIN_IMAGE_NAME }}:${{ env.BRANCH_NAME }}
+      api_image: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}:${{ env.BRANCH_NAME }}
 
   mayhem:
     needs: build
@@ -79,27 +95,55 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # Fuzz binaries
       - name: Start analysis for ${{ matrix.mayhemfile }}
         id: run-mayhem
         uses: ForAllSecure/mcode-action@v1
         with:
           mayhem-url: ${{ secrets.MAYHEM_URL }}
           mayhem-token: ${{ secrets.MAYHEM_TOKEN }}
-          args: --image ${{ needs.build.outputs.image }} --file ${{ matrix.mayhemfile }} --duration 60
-          sarif-output: sarif
-          junit-output: junit
+          args: --image ${{ needs.build.outputs.bin_image }} --file ${{ matrix.mayhemfile }} --duration 60
+          sarif-output: bin.sarif
+          junit-output: bin.junit
           coverage-output: coverage
+
+      # Fuzz APIs
+      - name: Run API container
+        run: docker run --rm -d --network host --name ${{ env.API_CONTAINER_NAME }} ${{ needs.build.outputs.api_image }}
+
+      - uses: ForAllSecure/mapi-action@v1
+        name: Start analysis for API
+        continue-on-error: true
+        with:
+          mapi-token: ${{ secrets.MAYHEM_TOKEN }}
+          api-url: http://localhost:8000
+          api-spec: http://localhost:8000/openapi.json
+          target: ${{ env.TARGET }}
+          sarif-report: api.sarif
+          html-report: api.html
+
+      - name: Stop API container
+        run: docker kill ${{ env.API_CONTAINER_NAME }}
+
+      - name: Archive Mayhem report
+        uses: actions/upload-artifact@v3
+        with:
+          name: api-report
+          path: api.html
+
 
       - name: Upload SARIF file(s)
         uses: github/codeql-action/upload-sarif@v2
         with:
-          sarif_file: sarif
-      
+          sarif_file: |
+            bin.sarif
+            api.sarif
+
       - name: Upload JUNIT file(s)
         uses: actions/upload-artifact@v3
         with:
-          name: junit
-          path: junit
+          name: junit-report
+          path: bin.junit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
