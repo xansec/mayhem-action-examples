@@ -72,8 +72,8 @@ jobs:
       fail-fast: false
       matrix:
         mayhemfile:
-          - mayhem/Mayhemfile.lighttpd
-          - mayhem/Mayhemfile.mayhemit
+          - mayhem/lighttpd.mayhemfile
+          - mayhem/mayhemit.mayhemfile
           # Specify one or many Mayhemfiles here
 
     steps:

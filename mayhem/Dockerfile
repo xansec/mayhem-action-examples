@@ -1,7 +1,7 @@
 FROM debian:buster-slim as builder1
 RUN apt-get update && \
     apt-get install -y gcc make libc6-dbg
-COPY mayhemit-c/mayhemit.c .
+COPY fuzz/mayhemit.c .
 # complile with coverage
 RUN gcc -g mayhemit.c -o /mayhemit
 
